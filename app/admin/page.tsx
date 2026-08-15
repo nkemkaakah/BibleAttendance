@@ -237,26 +237,32 @@ export default function AdminPage() {
         <h2 className="title">Daily email</h2>
         <p className="sub">
           {savedEmail
-            ? `Each day's code and QR are emailed to ${savedEmail} automatically.`
-            : "Add an address and the day's code will be emailed there automatically, every day."}
+            ? `The day's code and QR are emailed to ${savedEmail} automatically, every day.`
+            : "Add an address below and the day's code will be emailed there automatically, every day."}
         </p>
-        <div className="email-row">
-          <input
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            aria-label="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && saveEmail()}
-          />
-          <button className="ghost" onClick={saveEmail} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
-          </button>
-          <button className="ghost" onClick={sendNow} disabled={sending || !savedEmail}>
-            {sending ? "Sending…" : "Send today's now"}
-          </button>
+        <div className="field">
+          <label htmlFor="admin-email">
+            {savedEmail ? "Change this email" : "Email address"}
+          </label>
+          <div className="email-row">
+            <input
+              id="admin-email"
+              type="email"
+              inputMode="email"
+              autoComplete="off"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && saveEmail()}
+            />
+            <button className="ghost" onClick={saveEmail} disabled={saving}>
+              {saving ? "Saving…" : savedEmail ? "Update" : "Save"}
+            </button>
+            <button className="ghost" onClick={sendNow} disabled={sending || !savedEmail}>
+              {sending ? "Sending…" : "Send today's now"}
+            </button>
+          </div>
+          <p className="field-hint">You can change this any time — type a new address and tap Save.</p>
         </div>
       </div>
 

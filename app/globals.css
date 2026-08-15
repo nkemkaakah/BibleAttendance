@@ -431,8 +431,13 @@ button.ghost {
 .email-row {
   display: flex;
   gap: 8px;
-  margin-top: 18px;
   flex-wrap: wrap;
+}
+
+.field-hint {
+  margin-top: 8px;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
 }
 
 .email-row input {
