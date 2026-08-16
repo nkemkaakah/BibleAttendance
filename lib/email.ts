@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { appUrl } from "./qr";
 
 // Resend only accepts a `from` on a domain verified in its dashboard.
-export const FROM_EMAIL = "KleanseLondon <hello@kleanselondon.co.uk>";
+export const FROM_EMAIL = "Tomi's Attendance System <hello@kleanselondon.co.uk>";
 export const ADMIN_NAME = "Tomi";
 
 type Args = {
