@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function Home() {
   const [code, setCode] = useState("");
@@ -47,7 +48,11 @@ export default function Home() {
         </button>
       </div>
 
-      <p className="footer-note">One check-in per person, each day.</p>
+      <p className="footer-note">
+        One check-in per person, each day.
+        <br />
+        New to the group? <Link href="/join">Sign up here</Link>.
+      </p>
     </main>
   );
 }

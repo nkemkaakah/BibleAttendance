@@ -105,7 +105,8 @@ label {
 }
 
 input[type="text"],
-input[type="password"] {
+input[type="password"],
+input[type="email"] {
   width: 100%;
   padding: 13px 14px;
   font-size: 1.05rem;
@@ -438,6 +439,20 @@ button.ghost {
   margin-top: 8px;
   color: var(--ink-soft);
   font-size: 0.85rem;
+}
+
+.member-email {
+  color: var(--ink-soft);
+  font-weight: normal;
+}
+
+.warn {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: #fbf3df;
+  color: #7a5b12;
+  border-radius: 10px;
+  font-size: 0.95rem;
 }
 
 .email-row input {

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { ensureCode } from "@/lib/codes";
 import { getAdminEmail } from "@/lib/settings";
-import { sendCodeEmail } from "@/lib/email";
+import { listMembers } from "@/lib/members";
+import { sendCodeEmail, sendCodeEmailToMany } from "@/lib/email";
 import { checkinUrl, qrDataUrl } from "@/lib/qr";
 import { logError, logInfo } from "@/lib/log";
 import { formatDay, targetDayKey } from "@/lib/time";
@@ -24,30 +25,45 @@ export async function GET(req: NextRequest) {
 
   try {
     const { row, created } = await ensureCode(key);
-    const to = await getAdminEmail();
-
-    if (!to) {
-      logInfo("cron.noRecipient", { day: key, code: row.code, created });
-      return NextResponse.json({ code: row.code, day: key, created, emailed: false });
-    }
-
-    const { sent, error } = await sendCodeEmail({
-      to,
+    const common = {
       code: row.code,
       dayLabel: formatDay(row.day_key),
       checkinUrl: checkinUrl(row.code),
       qrDataUrl: await qrDataUrl(row.code),
-    });
+    };
 
-    if (sent) logInfo("cron.sent", { day: key, code: row.code, to, created });
-    else logError("cron.emailFailed", new Error(error || "unknown"), { day: key, to });
+    const to = await getAdminEmail();
+    let emailed = false;
+    let emailError: string | null = null;
+    if (to) {
+      const result = await sendCodeEmail({ to, ...common });
+      emailed = result.sent;
+      emailError = result.error;
+      if (emailed) logInfo("cron.sent", { day: key, code: row.code, to, created });
+      else logError("cron.emailFailed", new Error(emailError || "unknown"), { day: key, to });
+    } else {
+      logInfo("cron.noRecipient", { day: key, code: row.code, created });
+    }
+
+    const members = await listMembers();
+    const { sentCount, failed } = await sendCodeEmailToMany(members, common);
+    logInfo("cron.membersSent", {
+      day: key,
+      total: members.length,
+      sentCount,
+      failedCount: failed.length,
+    });
+    if (failed.length) {
+      logError("cron.membersFailed", new Error("some member emails failed"), { day: key, failed });
+    }
 
     return NextResponse.json({
       code: row.code,
       day: key,
       created,
-      emailed: sent,
-      emailError: error,
+      emailed,
+      emailError,
+      members: { total: members.length, sent: sentCount, failed: failed.length },
     });
   } catch (err) {
     logError("cron.failed", err, { day: key });

@@ -27,7 +27,16 @@ create table if not exists settings (
 );
 insert into settings (id) values (1) on conflict (id) do nothing;
 
+create table if not exists members (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  email text not null,
+  email_key text not null unique,
+  created_at timestamptz not null default now()
+);
+
 -- Only the server touches these, using the service role key.
 alter table codes enable row level security;
 alter table checkins enable row level security;
 alter table settings enable row level security;
+alter table members enable row level security;

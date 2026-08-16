@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { getAdminEmail, setAdminEmail } from "@/lib/settings";
+import { isValidEmail } from "@/lib/validate";
 import { logError, logInfo } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (email && !isValidEmail(email)) {
     return NextResponse.json({ error: "That doesn't look like an email address." }, { status: 400 });
   }
 

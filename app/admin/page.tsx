@@ -21,6 +21,7 @@ type Current = {
   checkinUrl: string;
   qrDataUrl: string;
 };
+type Member = { id: string; name: string; email: string };
 type LoadResult = "ok" | "unauthorized" | "error";
 
 export default function AdminPage() {
@@ -33,6 +34,7 @@ export default function AdminPage() {
   const [weeks, setWeeks] = useState<Week[]>([]);
   const [email, setEmail] = useState("");
   const [savedEmail, setSavedEmail] = useState("");
+  const [members, setMembers] = useState<Member[]>([]);
   const [openDay, setOpenDay] = useState<string | null>(null);
   const openInit = useRef(false);
 
@@ -40,6 +42,7 @@ export default function AdminPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const serverError = useRef<string | null>(null);
@@ -77,6 +80,20 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadMembers = useCallback(async (pw: string) => {
+    try {
+      const res = await fetch("/api/admin/members", {
+        headers: { "x-admin-password": pw },
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setMembers(data.members || []);
+    } catch {
+      // The register load above already surfaces connectivity errors.
+    }
+  }, []);
+
   useEffect(() => {
     const stored = localStorage.getItem("adminpw");
     if (!stored) {
@@ -87,12 +104,13 @@ export default function AdminPage() {
       if (result === "ok") {
         setPassword(stored);
         setAuthed(true);
+        loadMembers(stored);
       } else if (result === "unauthorized") {
         localStorage.removeItem("adminpw");
       }
       setCheckingStored(false);
     });
-  }, [load]);
+  }, [load, loadMembers]);
 
   async function login() {
     if (signingIn) return;
@@ -103,6 +121,7 @@ export default function AdminPage() {
       if (result === "ok") {
         localStorage.setItem("adminpw", password);
         setAuthed(true);
+        loadMembers(password);
       } else if (result === "unauthorized") {
         setLoginError("That password isn't right.");
       } else {
@@ -114,6 +133,30 @@ export default function AdminPage() {
       }
     } finally {
       setSigningIn(false);
+    }
+  }
+
+  async function removeMemberRow(id: string) {
+    if (removingId) return;
+    if (!confirm("Remove this person from the daily email list?")) return;
+    setRemovingId(id);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/members", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", "x-admin-password": password },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        setMembers((prev) => prev.filter((m) => m.id !== id));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Couldn't remove that member.");
+      }
+    } catch {
+      setError("Couldn't reach the server. Try again.");
+    } finally {
+      setRemovingId(null);
     }
   }
 
@@ -264,6 +307,29 @@ export default function AdminPage() {
           </div>
           <p className="field-hint">You can change this any time — type a new address and tap Save.</p>
         </div>
+      </div>
+
+      <div className="card">
+        <h2 className="title">Members ({members.length})</h2>
+        <p className="sub">
+          Everyone here gets the day&apos;s code emailed to them automatically at midnight. They
+          sign themselves up at <code>/join</code> — you don&apos;t need to add anyone by hand.
+        </p>
+        {members.length === 0 && <p className="empty">No one has signed up yet.</p>}
+        {members.map((m) => (
+          <div className="row" key={m.id}>
+            <span>
+              {m.name} <span className="member-email">— {m.email}</span>
+            </span>
+            <button
+              className="ghost small"
+              onClick={() => removeMemberRow(m.id)}
+              disabled={removingId === m.id}
+            >
+              {removingId === m.id ? "Removing…" : "Remove"}
+            </button>
+          </div>
+        ))}
       </div>
 
       {weeks.map((week) => (

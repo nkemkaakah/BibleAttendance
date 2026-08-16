@@ -46,3 +46,32 @@ export async function sendCodeEmail({
     return { sent: false, error: e instanceof Error ? e.message : "Email failed." };
   }
 }
+
+// Small enough to stay well clear of Resend's per-second send limit.
+const BATCH_SIZE = 5;
+
+/** Sends the same day's code to many recipients: batches run one after another, each batch fully in parallel. */
+export async function sendCodeEmailToMany(
+  recipients: { email: string }[],
+  common: Omit<Args, "to">
+): Promise<{ sentCount: number; failed: { email: string; error: string }[] }> {
+  const failed: { email: string; error: string }[] = [];
+  let sentCount = 0;
+
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    const batch = recipients.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map((r) => sendCodeEmail({ ...common, to: r.email }))
+    );
+    results.forEach((result, idx) => {
+      if (result.status === "fulfilled" && result.value.sent) {
+        sentCount++;
+      } else {
+        const error = result.status === "fulfilled" ? result.value.error : result.reason?.message;
+        failed.push({ email: batch[idx].email, error: error || "Unknown error" });
+      }
+    });
+  }
+
+  return { sentCount, failed };
+}
