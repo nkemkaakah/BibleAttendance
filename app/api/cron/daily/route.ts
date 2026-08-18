@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     }
 
     const members = await listMembers();
-    const { sentCount, failed } = await sendCodeEmailToMany(members, common);
+    const { sentCount, failed } = await sendCodeEmailToMany(members, common, to);
     logInfo("cron.membersSent", {
       day: key,
       total: members.length,

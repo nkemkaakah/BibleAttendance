@@ -476,6 +476,73 @@ button.ghost {
   background: var(--card);
 }
 
+.autocomplete {
+  position: relative;
+}
+
+.suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 6px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(22, 40, 30, 0.1);
+  overflow-y: auto;
+  max-height: 240px;
+  z-index: 10;
+}
+
+.suggestion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.suggestion:last-child {
+  border-bottom: none;
+}
+
+.suggestion:hover,
+.suggestion:focus-visible {
+  background: var(--green-tint);
+}
+
+.s-name {
+  font-weight: 600;
+}
+
+.s-email {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.month-label {
+  font-weight: 600;
+  min-width: 140px;
+  text-align: center;
+}
+
 .footer-note {
   margin-top: auto;
   padding-top: 32px;

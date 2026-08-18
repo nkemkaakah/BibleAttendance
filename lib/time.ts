@@ -101,6 +101,28 @@ export function formatWeek(startKey: string): string {
   return `${start} – ${end}`;
 }
 
+/** "YYYY-MM" for the local calendar month of an instant. */
+export function monthKey(date: Date): string {
+  return dayKey(date).slice(0, 7);
+}
+
+/** "August 2026" */
+export function formatMonth(key: string): string {
+  const [y, m] = key.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-GB", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(y, m - 1, 1)));
+}
+
+/** Shifts a "YYYY-MM" key by whole months. */
+export function shiftMonthKey(key: string, months: number): string {
+  const [y, m] = key.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + months, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
 /** "07:41" */
 export function formatTime(date: Date): string {
   return new Intl.DateTimeFormat("en-GB", {

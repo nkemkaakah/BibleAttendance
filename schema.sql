@@ -35,6 +35,11 @@ create table if not exists members (
   created_at timestamptz not null default now()
 );
 
+-- Links a check-in to the member who made it (added after the tables above already
+-- existed in production, so it's a separate idempotent migration step).
+alter table checkins add column if not exists member_id uuid references members(id) on delete set null;
+create index if not exists checkins_member_idx on checkins (member_id);
+
 -- Only the server touches these, using the service role key.
 alter table codes enable row level security;
 alter table checkins enable row level security;

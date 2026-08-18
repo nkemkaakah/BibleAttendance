@@ -1,8 +1,9 @@
 import { Resend } from "resend";
 import { appUrl } from "./qr";
+import { logError } from "./log";
 
 // Resend only accepts a `from` on a domain verified in its dashboard.
-export const FROM_EMAIL = "Tomi's Attendance System <hello@kleanselondon.co.uk>";
+export const FROM_EMAIL = "Biblio's Attendance <hello@kleanselondon.co.uk>";
 export const ADMIN_NAME = "Tomi";
 
 type Args = {
@@ -31,7 +32,6 @@ export async function sendCodeEmail({
       subject: `${ADMIN_NAME}, here's your Bible study code for ${dayLabel}`,
       html: `
         <div style="font-family: Georgia, serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-          <p>Hi ${ADMIN_NAME},</p>
           <h2 style="color:#16281e;">${dayLabel}</h2>
           <p style="font-size: 32px; letter-spacing: 6px; font-weight: bold; color:#1f5c39;">${code}</p>
           <p>Works from midnight until <strong>9:00 PM</strong> today, then it stops.</p>
@@ -50,10 +50,43 @@ export async function sendCodeEmail({
 // Small enough to stay well clear of Resend's per-second send limit.
 const BATCH_SIZE = 5;
 
+/** Lets the admin know today's code just went out to the members list. */
+async function sendMemberBlastNotification(
+  to: string,
+  common: Omit<Args, "to">
+): Promise<{ sent: boolean; error: string | null }> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return { sent: false, error: "RESEND_API_KEY is not set." };
+  if (!to) return { sent: false, error: "No email address saved." };
+
+  try {
+    const { error } = await new Resend(key).emails.send({
+      from: FROM_EMAIL,
+      to: [to],
+      subject: `${ADMIN_NAME}, today's code was sent to your members`,
+      html: `
+        <div style="font-family: Georgia, serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+          <p>Hi ${ADMIN_NAME},</p>
+          <p>Just letting you know — today's code was sent to your members.</p>
+          <h2 style="color:#16281e;">${common.dayLabel}</h2>
+          <p style="font-size: 32px; letter-spacing: 6px; font-weight: bold; color:#1f5c39;">${common.code}</p>
+          <p>Here's the QR code that went out, for reference.</p>
+        </div>
+      `,
+      attachments: [{ filename: `code-${common.code}.png`, content: common.qrDataUrl.split(",")[1] }],
+    });
+    if (error) return { sent: false, error: error.message };
+    return { sent: true, error: null };
+  } catch (e) {
+    return { sent: false, error: e instanceof Error ? e.message : "Email failed." };
+  }
+}
+
 /** Sends the same day's code to many recipients: batches run one after another, each batch fully in parallel. */
 export async function sendCodeEmailToMany(
   recipients: { email: string }[],
-  common: Omit<Args, "to">
+  common: Omit<Args, "to">,
+  adminEmail?: string
 ): Promise<{ sentCount: number; failed: { email: string; error: string }[] }> {
   const failed: { email: string; error: string }[] = [];
   let sentCount = 0;
@@ -71,6 +104,13 @@ export async function sendCodeEmailToMany(
         failed.push({ email: batch[idx].email, error: error || "Unknown error" });
       }
     });
+  }
+
+  if (adminEmail && recipients.length > 0) {
+    const notify = await sendMemberBlastNotification(adminEmail, common);
+    if (!notify.sent) {
+      logError("email.notifyAdminFailed", new Error(notify.error || "unknown"), { adminEmail });
+    }
   }
 
   return { sentCount, failed };

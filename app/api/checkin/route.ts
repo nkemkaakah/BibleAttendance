@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getMemberById } from "@/lib/members";
 import { formatTime } from "@/lib/time";
 import { logError, logInfo } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  let body: { code?: string; name?: string };
+  let body: { code?: string; memberId?: string };
   try {
     body = await req.json();
   } catch {
@@ -14,10 +15,21 @@ export async function POST(req: NextRequest) {
   }
 
   const code = (body.code || "").toUpperCase().trim();
-  const name = (body.name || "").trim().replace(/\s+/g, " ");
+  const memberId = (body.memberId || "").trim();
 
-  if (!code || name.length < 2 || name.length > 60) {
-    return NextResponse.json({ error: "Please enter your name." }, { status: 400 });
+  if (!code || !memberId) {
+    return NextResponse.json(
+      { error: "Pick your name from the list before checking in." },
+      { status: 400 }
+    );
+  }
+
+  const member = await getMemberById(memberId);
+  if (!member) {
+    return NextResponse.json(
+      { error: "That member wasn't found. Please pick your name again." },
+      { status: 404 }
+    );
   }
 
   const { data: codeRow } = await db()
@@ -46,22 +58,23 @@ export async function POST(req: NextRequest) {
 
   const { error } = await db().from("checkins").insert({
     code_id: codeRow.id,
-    name,
-    name_key: name.toLowerCase(),
+    member_id: member.id,
+    name: member.name,
+    name_key: member.name.toLowerCase(),
   });
 
   if (error && error.code === "23505") {
-    logInfo("checkin.repeat", { code, name });
-    return NextResponse.json({ name, when: formatTime(now), already: true });
+    logInfo("checkin.repeat", { code, memberId: member.id });
+    return NextResponse.json({ name: member.name, when: formatTime(now), already: true });
   }
   if (error) {
-    logError("checkin.insert", error, { code, name });
+    logError("checkin.insert", error, { code, memberId: member.id });
     return NextResponse.json(
       { error: "Couldn't save your check-in. Please try again." },
       { status: 500 }
     );
   }
 
-  logInfo("checkin.ok", { code, name });
-  return NextResponse.json({ name, when: formatTime(now), already: false });
+  logInfo("checkin.ok", { code, memberId: member.id });
+  return NextResponse.json({ name: member.name, when: formatTime(now), already: false });
 }

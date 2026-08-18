@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
-import { listMembers, removeMember } from "@/lib/members";
+import { listMembersWithCounts, removeMember } from "@/lib/members";
 import { logError } from "@/lib/log";
+import { monthKey } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +10,9 @@ export async function GET(req: NextRequest) {
   if (!isAdmin(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const month = req.nextUrl.searchParams.get("month") || monthKey(new Date());
   try {
-    return NextResponse.json({ members: await listMembers() });
+    return NextResponse.json({ members: await listMembersWithCounts(month), month });
   } catch (err) {
     logError("members.list.route", err);
     const message = err instanceof Error ? err.message : "Couldn't load members.";

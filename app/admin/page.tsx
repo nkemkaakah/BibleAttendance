@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { formatMonth, shiftMonthKey } from "@/lib/time";
 
 type Entry = { name: string; time: string };
 type Day = {
@@ -21,7 +22,7 @@ type Current = {
   checkinUrl: string;
   qrDataUrl: string;
 };
-type Member = { id: string; name: string; email: string };
+type Member = { id: string; name: string; email: string; count: number };
 type LoadResult = "ok" | "unauthorized" | "error";
 
 export default function AdminPage() {
@@ -35,6 +36,7 @@ export default function AdminPage() {
   const [email, setEmail] = useState("");
   const [savedEmail, setSavedEmail] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
+  const [month, setMonth] = useState("");
   const [openDay, setOpenDay] = useState<string | null>(null);
   const openInit = useRef(false);
 
@@ -80,19 +82,26 @@ export default function AdminPage() {
     }
   }, []);
 
-  const loadMembers = useCallback(async (pw: string) => {
+  const loadMembers = useCallback(async (pw: string, forMonth?: string) => {
     try {
-      const res = await fetch("/api/admin/members", {
+      const url = forMonth ? `/api/admin/members?month=${forMonth}` : "/api/admin/members";
+      const res = await fetch(url, {
         headers: { "x-admin-password": pw },
         cache: "no-store",
       });
       if (!res.ok) return;
       const data = await res.json();
       setMembers(data.members || []);
+      setMonth(data.month || forMonth || "");
     } catch {
       // The register load above already surfaces connectivity errors.
     }
   }, []);
+
+  function changeMonth(delta: number) {
+    if (!month || !password) return;
+    loadMembers(password, shiftMonthKey(month, delta));
+  }
 
   useEffect(() => {
     const stored = localStorage.getItem("adminpw");
@@ -315,19 +324,33 @@ export default function AdminPage() {
           Everyone here gets the day&apos;s code emailed to them automatically at midnight. They
           sign themselves up at <code>/join</code> — you don&apos;t need to add anyone by hand.
         </p>
+        <div className="month-nav">
+          <button className="ghost small" onClick={() => changeMonth(-1)} disabled={!month}>
+            ← Prev
+          </button>
+          <span className="month-label">{month ? formatMonth(month) : "…"}</span>
+          <button className="ghost small" onClick={() => changeMonth(1)} disabled={!month}>
+            Next →
+          </button>
+        </div>
         {members.length === 0 && <p className="empty">No one has signed up yet.</p>}
         {members.map((m) => (
           <div className="row" key={m.id}>
             <span>
               {m.name} <span className="member-email">— {m.email}</span>
             </span>
-            <button
-              className="ghost small"
-              onClick={() => removeMemberRow(m.id)}
-              disabled={removingId === m.id}
-            >
-              {removingId === m.id ? "Removing…" : "Remove"}
-            </button>
+            <span className="head-right">
+              <span className="count">
+                {m.count} check-in{m.count === 1 ? "" : "s"}
+              </span>
+              <button
+                className="ghost small"
+                onClick={() => removeMemberRow(m.id)}
+                disabled={removingId === m.id}
+              >
+                {removingId === m.id ? "Removing…" : "Remove"}
+              </button>
+            </span>
           </div>
         ))}
       </div>
