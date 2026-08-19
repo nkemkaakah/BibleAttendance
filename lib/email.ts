@@ -4,7 +4,6 @@ import { logError } from "./log";
 
 // Resend only accepts a `from` on a domain verified in its dashboard.
 export const FROM_EMAIL = "Biblio's Attendance <hello@kleanselondon.co.uk>";
-export const ADMIN_NAME = "Tomi";
 
 type Args = {
   to: string;
@@ -29,7 +28,7 @@ export async function sendCodeEmail({
     const { error } = await new Resend(key).emails.send({
       from: FROM_EMAIL,
       to: [to],
-      subject: `${ADMIN_NAME}, here's your Bible study code for ${dayLabel}`,
+      subject: `Here's your Bible study code for ${dayLabel}`,
       html: `
         <div style="font-family: Georgia, serif; max-width: 480px; margin: 0 auto; padding: 24px;">
           <h2 style="color:#16281e;">${dayLabel}</h2>
@@ -63,10 +62,9 @@ async function sendMemberBlastNotification(
     const { error } = await new Resend(key).emails.send({
       from: FROM_EMAIL,
       to: [to],
-      subject: `${ADMIN_NAME}, today's code was sent to your members`,
+      subject: `Today's code was sent to your members`,
       html: `
         <div style="font-family: Georgia, serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-          <p>Hi ${ADMIN_NAME},</p>
           <p>Just letting you know — today's code was sent to your members.</p>
           <h2 style="color:#16281e;">${common.dayLabel}</h2>
           <p style="font-size: 32px; letter-spacing: 6px; font-weight: bold; color:#1f5c39;">${common.code}</p>
