@@ -178,6 +178,11 @@ button.ghost {
   cursor: pointer;
 }
 
+button.ghost:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .error {
   margin-top: 14px;
   padding: 12px 14px;

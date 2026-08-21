@@ -22,7 +22,11 @@ function newCode(): string {
 }
 
 async function findByDay(key: string): Promise<CodeRow | null> {
-  const { data } = await db().from("codes").select(COLUMNS).eq("day_key", key).maybeSingle();
+  const { data, error } = await db().from("codes").select(COLUMNS).eq("day_key", key).maybeSingle();
+  if (error) {
+    logError("codes.findByDay", error, { day: key });
+    throw new Error("Couldn't check for an existing code.");
+  }
   return (data as CodeRow) || null;
 }
 
