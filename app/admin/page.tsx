@@ -45,6 +45,7 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [exportingDay, setExportingDay] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const serverError = useRef<string | null>(null);
@@ -142,6 +143,33 @@ export default function AdminPage() {
       }
     } finally {
       setSigningIn(false);
+    }
+  }
+
+  async function exportDay(dayKey: string) {
+    if (exportingDay) return;
+    setExportingDay(dayKey);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/export?day=${dayKey}`, {
+        headers: { "x-admin-password": password },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Couldn't export that day.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `attendance-${dayKey}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Couldn't reach the server. Try again.");
+    } finally {
+      setExportingDay(null);
     }
   }
 
@@ -365,9 +393,17 @@ export default function AdminPage() {
           </div>
           {week.days.map((day) => (
             <div key={day.key}>
-              <button
+              <div
                 className="week-head"
+                role="button"
+                tabIndex={0}
                 onClick={() => setOpenDay(openDay === day.key ? null : day.key)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setOpenDay(openDay === day.key ? null : day.key);
+                  }
+                }}
                 aria-expanded={openDay === day.key}
               >
                 <div>
@@ -377,8 +413,19 @@ export default function AdminPage() {
                 <div className="head-right">
                   <span className="count">{day.count}</span>
                   {day.live && <span className="pill active">Live</span>}
+                  <button
+                    type="button"
+                    className="ghost small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      exportDay(day.key);
+                    }}
+                    disabled={exportingDay === day.key}
+                  >
+                    {exportingDay === day.key ? "Exporting…" : "Export CSV"}
+                  </button>
                 </div>
-              </button>
+              </div>
               {openDay === day.key && (
                 <div className="week-body">
                   {day.entries.length === 0 && <p className="empty">No one checked in.</p>}
