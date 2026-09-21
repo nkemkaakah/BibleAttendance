@@ -1,3 +1,4 @@
+// test edit
 # Study Group Attendance
 
 Daily QR-code attendance for a small group. Each day has its own code, live from midnight until 9:00 PM. Members scan it (or type it), enter their name, and are logged. The admin gets the day's QR by email automatically and reads the register per day and per week.
