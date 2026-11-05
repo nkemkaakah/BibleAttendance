@@ -16,7 +16,12 @@ export function db(): SupabaseClient {
         "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY still holds a placeholder value. Check .env.local."
       );
     }
-    client = createClient(url!, key!, { auth: { persistSession: false } });
+    client = createClient(url!, key!, {
+      auth: { persistSession: false },
+      // Next.js 14 caches GET fetches by default (even under `dynamic = "force-dynamic"`
+      // for GET-only route handlers), which served stale "no code yet" / member lists.
+      global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }) },
+    });
   }
   return client;
 }
